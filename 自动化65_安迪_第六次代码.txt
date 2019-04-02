@@ -1,0 +1,239 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import cv2
+from PIL import Image
+from numpy import *
+from scipy.fftpack import fft, ifft
+import math
+import random
+
+def GaussianNoise(img_test,mean,sigma):
+
+	row = img_test.shape[0]
+	col = img_test.shape[1]
+	img_noise = np.zeros([row,col],np.uint8)
+
+	sample = col * row
+
+	s = np.random.normal(mean, sigma,sample)
+
+	Gau = s. reshape((row , col))
+	img_noise = img_test + Gau
+
+	return img_noise
+
+def AverFilter(img,n):
+	row = np.int(img.shape[0])
+	col = np.int(img.shape[1])
+	aver_filter_img = np.zeros([row,col],np.uint8)
+	for i in range (row):
+		for j in range (col):
+			aver_filter_img[i,j] = img[i,j]
+	for i in range (int((n+1)/2),row-int((n+1)/2)):
+		for j in range (int((n+1)/2),col-int((n+1)/2)):
+			temp = np.zeros([n,n], uint8)
+			for x in range (n):
+				for y in range (n):
+					temp[x,y] = img[i+x-int((n+1)/2),j+y-int((n+1)/2)] 
+			aver_filter_img[i,j] = np.mean(temp)
+	return aver_filter_img
+					
+def MedFilter(img,n):			
+	row = np.int(img.shape[0])
+	col = np.int(img.shape[1])
+	med_filter_img = np.zeros([row,col],np.uint8)
+	for i in range (row):
+		for j in range (col):
+			med_filter_img[i,j] = img[i,j]
+	for i in range (int((n+1)/2),row-int((n+1)/2)):
+		for j in range (int((n+1)/2),col-int((n+1)/2)):
+			temp = np.zeros([n,n], uint8)
+			for x in range (n):
+				for y in range (n):
+					temp[x,y] = img[i+x-int((n+1)/2),j+y-int((n+1)/2)] 
+			med_filter_img[i,j] = np.median(temp)
+	return med_filter_img
+
+def PepperandSalt(img,per):
+	img_pepper = img
+	row = img_pepper.shape[0]
+	col = img_pepper.shape[1]
+	number_noise = int (per*row*col)
+	a = [0,255]
+	for i in range (number_noise):
+		randX=int(np.random.uniform(0,row))
+		randY=int(np.random.uniform(0,col))
+		img_pepper[randX,randY] = random.choice(a)
+	return img_pepper
+
+def Harm_Wave(img,n):
+	row = np.int(img.shape[0])
+	col = np.int(img.shape[1])
+	Harm_img = np.zeros([row,col],np.uint8)
+	Harm_img = img
+	for i in range (int((n+1)/2),row-int((n+1)/2)):
+		for j in range (int((n+1)/2),col-int((n+1)/2)):
+			temp = np.zeros([n,n], uint8)
+			for x in range (n):
+				for y in range (n):
+					temp[x,y] = np.uint8(1/(img[i+x-int((n+1)/2),j+y-int((n+1)/2)]))
+			Harm_img[i,j] = np.uint8(n*n/temp.sum())
+	return Harm_img
+
+def Re_Harm_Wave(img,n,Q):
+	row = np.int(img.shape[0])
+	col = np.int(img.shape[1])
+	re_Harm_img = np.zeros([row,col],np.uint8)
+	re_Harm_img = img
+	for i in range (int((n+1)/2),row-int((n+1)/2)):
+		for j in range (int((n+1)/2),col-int((n+1)/2)):
+			temp1 = np.zeros([n,n], uint8)
+			temp2 = np.zeros([n,n], uint8)
+			for x in range (n):
+				for y in range (n):
+					temp1[x,y] = np.uint8((img[i+x-int((n+1)/2),j+y-int((n+1)/2)])**Q)
+					temp2[x,y] = np.uint8((img[i+x-int((n+1)/2),j+y-int((n+1)/2)])**(Q+1))
+			re_Harm_img[i,j] = np.uint8(temp2.sum()/temp1.sum())
+	return re_Harm_img
+
+def blur_WFilter(a,b,T,K):
+	img=np.array(Image.open('lena.bmp').convert('L'),'i')
+	row=int(img.shape[0])
+	col=int(img.shape[1])
+	fp=np.zeros((row,col))
+	fp=img
+	
+	F=np.fft.fft2(fp)
+	F=np.fft.fftshift(F)
+	H=np.zeros((row,col),np.complex)
+	G=np.zeros((row,col),np.complex)
+	F1=np.zeros((row,col),np.complex)
+	F2=np.zeros((row,col),np.complex)
+	for u in range (row):
+		for v in range (col):
+			H[u,v]=(T/math.pi*(u*a+v*b))*math.sin(math.pi*(u*a+v*b))*exp(-1*math.pi*(0.0+1.0j)*(u*a+v*b))
+			G[u,v]=F[u,v]*H[u,v]
+			#temp = (np.abs(H[u,v]))**2
+			#F1 [u,v] = ((1/H[u,v])*(temp/(temp+k))
+	G=np.fft.ifftshift(G)
+	g=np.fft.ifft2(G)
+	plt.imshow(np.abs(g),cmap='gray')
+	plt.show()
+
+	return g
+			
+def WF(a,b,T,K,mean,sigma):
+	img=np.array(Image.open('lena.bmp').convert('L'),'i')
+	row=int(img.shape[0])
+	col=int(img.shape[1])
+	fp=np.zeros((row,col))
+	G=np.zeros((row,col),np.complex)
+	H=np.zeros((row,col),np.complex)
+	F1=np.zeros((row,col),np.complex)
+	sample = col * row
+	s = np.random.normal(mean, sigma,sample)
+	Gau=s.reshape((row,col))
+	fp=img+Gau
+	plt.imshow(fp,cmap='gray')
+	plt.show()
+	G=np.fft.fft2(fp)
+	G=np.fft.fftshift(G)
+	for u in range(row):
+		for v in range(col):
+			H[u,v]=(T/math.pi*(u*a+v*b))*math.sin(math.pi*(u*a+v*b))*exp(-1*math.pi*(0.0+1.0j)*(u*a+v*b))
+			if np.abs(H[u,v])==0:
+				H[u,v]=0.01
+			F1[u,v]=1/H[u,v]*(abs(H[u,v]))**2/((abs(H[u,v]))**2+K)*G[u,v]
+	F1=np.fft.ifftshift(F1)
+	f1=np.fft.ifft2(F1)
+	plt.imshow(np.abs(f1),cmap='gray')
+	plt.show()
+	return f1
+
+def LS(a,b,T,K,mean,sigma):
+	img=np.array(Image.open('lena.bmp').convert('L'),'i')
+	row=int(img.shape[0])
+	col=int(img.shape[1])
+	fp=np.zeros((row,col))
+	G=np.zeros((row,col),np.complex)
+	L=np.zeros((row,col),np.complex)
+	H=np.zeros((row,col),np.complex)
+	H2=np.zeros((row,col),np.complex)
+	F1=np.zeros((row,col),np.complex)
+	sample = col * row
+	s = np.random.normal(mean, sigma,sample)
+	Gau=s.reshape((row,col))
+	fp=img+Gau
+	plt.imshow(fp,cmap='gray')
+	plt.show()
+	G=np.fft.fft2(fp)
+	G=np.fft.fftshift(G)
+	for u in range (row) :
+		for v in range (col) :
+			temp=((u-row/2)**2+(v-col/2)**2)
+			L[u,v]=(4*math.pi**2)*temp
+	L=L/(L.max())
+	for u in range(row):
+		for v in range(col):
+			H[u,v]=(T/math.pi*(u*a+v*b))*math.sin(math.pi*(u*a+v*b))*exp(-1*math.pi*(0.0+1.0j)*(u*a+v*b))
+			if np.abs(H[u,v])==0:
+				H[u,v]=0.01
+			H2[u,v]=H[u,v].conjugate()
+			F1[u,v]=H2[u,v]/((abs(H[u,v]))**2+K*(abs(L[u,v]))**2)*G[u,v]
+	F1=np.fft.ifftshift(F1)
+	f1=np.fft.ifft2(F1)
+	plt.imshow(np.abs(f1),cmap='gray')
+	plt.show()
+	return f1
+
+
+img_W1 = blur_WFilter(0.1,0.1,1,0.1)
+img_W = WF(0.1,0.1,1,0.001,0,10)
+img_W = LS(0.1,0.1,1,0.1,0,10)
+
+
+img_test = np.array(Image.open('lena.bmp').convert('L'),'i')
+mean = 0
+sigma = 10
+img_noise = GaussianNoise(img_test,mean,sigma)
+plt.imshow(img_noise, cmap='gray')
+plt.show()
+
+img_pepper=PepperandSalt(img_test,0.1)
+plt.imshow(img_pepper, cmap='gray')
+plt.show()
+
+img_aver_g=AverFilter(img_noise,5)
+plt.imshow(img_aver_g, cmap='gray')
+plt.show()
+
+img_aver_p=AverFilter(img_pepper,5)
+plt.imshow(img_aver_p, cmap='gray')
+plt.show()
+
+img_med_g=MedFilter(img_noise,5)
+plt.imshow(img_med_g, cmap='gray')
+plt.show()
+
+img_med_p=MedFilter(img_pepper,5)
+plt.imshow(img_med_p, cmap='gray')
+plt.show()
+
+
+img_Harm_re_G=Re_Harm_Wave(img_noise,3,0.5)
+plt.imshow(img_Harm_re_G, cmap='gray')
+plt.show()
+
+img_Harm_re_P=Re_Harm_Wave(img_pepper,3,0.5)
+plt.imshow(img_Harm_re_P, cmap='gray')
+plt.show()
+
+
+img_Harm_G=Harm_Wave(img_noise,3)
+plt.imshow(img_Harm_G, cmap='gray')
+plt.show()
+
+img_Harm_P=Harm_Wave(img_pepper,3)
+plt.imshow(img_Harm_P, cmap='gray')
+plt.show()
+
